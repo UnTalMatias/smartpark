@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.estacionamiento.inteligente.app-mergeDebugResources-44:/values-v30/values-v30.xml",
+            "map": [
+                {
+                    "source": "/home/matias/.gradle/caches/9.5.0/transforms/a5fb592c7810a51bcba91b02fb9bbf7b/transformed/material3-release/res/values-v30/values-v30.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "72",
+                        "endOffsets": "123"
+                    }
+                }
+            ]
+        }
+    ]
+}
