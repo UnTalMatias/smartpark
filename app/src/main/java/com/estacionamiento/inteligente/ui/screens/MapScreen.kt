@@ -37,7 +37,9 @@ fun MapScreen(
     parkings: List<ParkingSpot>,
     reports: List<CommunityReport> = emptyList(),
     selectedParking: ParkingSpot?,
+    isLoading: Boolean = false,
     onSelectParking: (ParkingSpot) -> Unit,
+    onRefresh: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
     onNavigateToSearch: () -> Unit,
     onNavigateToHome: () -> Unit,
@@ -49,6 +51,11 @@ fun MapScreen(
     // Configure OSMDroid
     Configuration.getInstance().load(context, context.getSharedPreferences("osm", 0))
 
+    // Refresh data when entering the screen
+    LaunchedEffect(Unit) {
+        onRefresh()
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         // OSMDroid View
         AndroidView(
@@ -58,45 +65,54 @@ fun MapScreen(
                     setMultiTouchControls(true)
                     controller.setZoom(17.0)
                     controller.setCenter(GeoPoint(-34.5495, -58.4561)) // E.T. N°21
-
-                    // Add Parkings as Markers
-                    parkings.forEach { parking ->
-                        val marker = Marker(this)
-                        marker.position = GeoPoint(parking.lat, parking.lng)
-                        marker.title = parking.name
-                        marker.snippet = "${parking.availableSpots} lugares"
-                        
-                        // Red pin for paid parking
-                        if (parking.isPaid) {
-                            marker.icon = context.getDrawable(android.R.drawable.ic_notification_overlay) 
-                            marker.setPanToView(true)
-                        }
-
-                        marker.setOnMarkerClickListener { m, _ ->
-                            onSelectParking(parking)
-                            m.showInfoWindow()
-                            true
-                        }
-                        overlays.add(marker)
-                    }
-
-                    // Add Reports as Markers
-                    reports.forEach { report ->
-                        val marker = Marker(this)
-                        marker.position = GeoPoint(report.lat, report.lng)
-                        marker.title = report.type.name
-                        marker.snippet = report.description
-                        marker.icon = context.getDrawable(android.R.drawable.stat_notify_error)
-                        overlays.add(marker)
-                    }
                 }
             },
             update = { mapView ->
-                // Update logic if needed when reports/parkings change
+                // Clear and Re-add Markers to keep it reactive
+                mapView.overlays.clear()
+
+                parkings.forEach { parking ->
+                    val marker = Marker(mapView)
+                    marker.position = GeoPoint(parking.lat, parking.lng)
+                    marker.title = parking.name
+                    marker.snippet = "${parking.availableSpots} lugares"
+                    
+                    if (parking.isPaid) {
+                        marker.icon = context.getDrawable(android.R.drawable.ic_notification_overlay) 
+                    }
+
+                    marker.setOnMarkerClickListener { m, _ ->
+                        onSelectParking(parking)
+                        m.showInfoWindow()
+                        true
+                    }
+                    mapView.overlays.add(marker)
+                }
+
+                reports.forEach { report ->
+                    val marker = Marker(mapView)
+                    marker.position = GeoPoint(report.lat, report.lng)
+                    marker.title = report.type.name
+                    marker.snippet = report.description
+                    marker.icon = context.getDrawable(android.R.drawable.stat_notify_error)
+                    mapView.overlays.add(marker)
+                }
+
                 mapView.invalidate()
             },
             modifier = Modifier.fillMaxSize()
         )
+
+        // Loading indicator
+        if (isLoading) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .padding(top = 80.dp), // Under the search bar
+                color = GreenPrimary
+            )
+        }
 
         // Top Search Bar
         Row(
@@ -172,12 +188,16 @@ fun MapScreen(
             }
             
             FloatingActionButton(
-                onClick = { /* Recenter GPS */ },
+                onClick = onRefresh,
                 containerColor = Color.White,
                 contentColor = GreenPrimary,
                 modifier = Modifier.size(44.dp)
             ) {
-                Icon(Icons.Default.MyLocation, contentDescription = "GPS")
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = GreenPrimary)
+                } else {
+                    Icon(Icons.Default.MyLocation, contentDescription = "GPS")
+                }
             }
         }
 

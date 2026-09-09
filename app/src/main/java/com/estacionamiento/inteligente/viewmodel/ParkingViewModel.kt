@@ -31,7 +31,8 @@ data class UiState(
     val remainingTimeMinutes: Int = 12,
     val currentSpeedKmh: Int = 42,
     val isGpsActive: Boolean = true,
-    val reports: List<CommunityReport> = emptyList()
+    val reports: List<CommunityReport> = emptyList(),
+    val isLoading: Boolean = false
 )
 
 class ParkingViewModel : ViewModel() {
@@ -45,9 +46,14 @@ class ParkingViewModel : ViewModel() {
     }
 
     fun fetchData() {
+        _uiState.value = _uiState.value.copy(isLoading = true)
         viewModelScope.launch {
-            fetchParkings()
-            fetchReports()
+            try {
+                fetchParkings()
+                fetchReports()
+            } finally {
+                _uiState.value = _uiState.value.copy(isLoading = false)
+            }
         }
     }
 

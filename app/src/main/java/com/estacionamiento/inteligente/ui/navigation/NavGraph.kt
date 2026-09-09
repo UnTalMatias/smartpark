@@ -37,7 +37,9 @@ fun AppNavGraph(
                 parkings = uiState.parkings,
                 reports = uiState.reports,
                 selectedParking = uiState.selectedParking,
+                isLoading = uiState.isLoading,
                 onSelectParking = { viewModel.selectParking(it) },
+                onRefresh = { viewModel.fetchData() },
                 onNavigateToDetail = { parkingId ->
                     navController.navigate(Screen.ParkingDetail.createRoute(parkingId))
                 },
@@ -53,6 +55,8 @@ fun AppNavGraph(
             SearchScreen(
                 parkings = uiState.parkings,
                 activeFilter = uiState.activeFilter,
+                isLoading = uiState.isLoading,
+                onRefresh = { viewModel.fetchData() },
                 onFilterChange = { viewModel.setFilter(it) },
                 onNavigateBack = { navController.popBackStack() },
                 onSelectParking = { parking ->

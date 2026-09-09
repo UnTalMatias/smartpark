@@ -25,6 +25,8 @@ import com.estacionamiento.inteligente.ui.theme.GreenPrimary
 fun SearchScreen(
     parkings: List<ParkingSpot>,
     activeFilter: String,
+    isLoading: Boolean = false,
+    onRefresh: () -> Unit,
     onFilterChange: (String) -> Unit,
     onNavigateBack: () -> Unit,
     onSelectParking: (ParkingSpot) -> Unit
@@ -86,13 +88,21 @@ fun SearchScreen(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     IconButton(
-                        onClick = { /* Refresh */ },
+                        onClick = onRefresh,
                         modifier = Modifier
                             .size(42.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(GreenPrimary)
                     ) {
-                        Icon(Icons.Default.Tune, contentDescription = "Filtrar", tint = Color.White)
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refrescar", tint = Color.White)
+                        }
                     }
                 }
 
