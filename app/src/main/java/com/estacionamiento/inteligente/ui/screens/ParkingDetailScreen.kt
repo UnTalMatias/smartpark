@@ -91,7 +91,7 @@ fun ParkingDetailScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Star, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "${parking.rating}", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text(text = if (parking.rating > 0.0) "${parking.rating}" else "Nuevo", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 

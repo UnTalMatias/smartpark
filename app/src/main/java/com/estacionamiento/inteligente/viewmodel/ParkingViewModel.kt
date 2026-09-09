@@ -12,7 +12,11 @@ import kotlinx.coroutines.launch
 
 import com.estacionamiento.inteligente.data.remote.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
-import io.github.jan.supabase.postgrest.query.Order
+
+private const val MAX_PARKINGS = 250
+
+private fun isValidAmbaCoords(lat: Double, lng: Double): Boolean =
+    lat in -34.9..-34.4 && lng in -58.8..-58.2
 
 data class UiState(
     val userLocation: Coordinates = MockDataSource.SCHOOL_COORDINATES,
@@ -43,16 +47,22 @@ class ParkingViewModel : ViewModel() {
     fun fetchData() {
         viewModelScope.launch {
             try {
-                // Supabase Fetch
-                val parkings = SupabaseClient.client.postgrest["parking_spots"].select().decodeList<ParkingSpot>()
-                val reports = SupabaseClient.client.postgrest["community_reports"].select().decodeList<CommunityReport>()
-                
-                _uiState.value = _uiState.value.copy(
-                    parkings = parkings,
-                    reports = reports
-                )
+                val origin = _uiState.value.userLocation
+                val rows = SupabaseClient.client.postgrest["parkings"].select().decodeList<ParkingRow>()
+                val parkings = rows
+                    .filter { it.lat != null && it.lng != null && isValidAmbaCoords(it.lat, it.lng) }
+                    .map { it.toParkingSpot(origin) }
+                    .sortedBy { distanceMeters(origin, it) }
+                    .take(MAX_PARKINGS)
+
+                if (parkings.isNotEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        parkings = parkings,
+                        selectedParking = parkings.first()
+                    )
+                }
             } catch (e: Exception) {
-                // Mantener mock si falla
+                // Mantener mock si falla (offline / DB inalcanzable)
             }
         }
     }
@@ -84,7 +94,7 @@ class ParkingViewModel : ViewModel() {
                     parkings = _uiState.value.parkings.mapIndexed { idx, p ->
                         if (idx == 0) {
                             val delta = if (Math.random() > 0.5) 1 else -1
-                            p.copy(availableSpots = (p.availableSpots + delta).coerceIn(1, p.totalSpots))
+                            p.copy(availableSpots = (p.availableSpots + delta).coerceIn(1, p.totalSpots.coerceAtLeast(1)))
                         } else p
                     }
                 )

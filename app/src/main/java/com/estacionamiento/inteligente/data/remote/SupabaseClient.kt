@@ -6,8 +6,8 @@ import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.realtime.Realtime
 
 object SupabaseClient {
-    private const val SUPABASE_URL = "https://zssmxeeeybqsesxebyek.supabase.co"
-    private const val SUPABASE_KEY = "sb_publishable_u2BYJM9M2_dzOGT3mb2U_w_EArk30b3"
+    private const val SUPABASE_URL = "https://kqapyjcfmsfgsrnebzbn.supabase.co"
+    private const val SUPABASE_KEY = "sb_publishable_OglH6GgUfJtfIFf1JrlpOQ_EnATFHc_"
 
     val client = createSupabaseClient(
         supabaseUrl = SUPABASE_URL,
