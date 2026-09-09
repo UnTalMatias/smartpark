@@ -46,24 +46,38 @@ class ParkingViewModel : ViewModel() {
 
     fun fetchData() {
         viewModelScope.launch {
-            try {
-                val origin = _uiState.value.userLocation
-                val rows = SupabaseClient.client.postgrest["parkings"].select().decodeList<ParkingRow>()
-                val parkings = rows
-                    .filter { it.lat != null && it.lng != null && isValidAmbaCoords(it.lat, it.lng) }
-                    .map { it.toParkingSpot(origin) }
-                    .sortedBy { distanceMeters(origin, it) }
-                    .take(MAX_PARKINGS)
+            fetchParkings()
+            fetchReports()
+        }
+    }
 
-                if (parkings.isNotEmpty()) {
-                    _uiState.value = _uiState.value.copy(
-                        parkings = parkings,
-                        selectedParking = parkings.first()
-                    )
-                }
-            } catch (e: Exception) {
-                // Mantener mock si falla (offline / DB inalcanzable)
+    private suspend fun fetchParkings() {
+        try {
+            val origin = _uiState.value.userLocation
+            val rows = SupabaseClient.client.postgrest["parkings"].select().decodeList<ParkingRow>()
+            val parkings = rows
+                .filter { it.lat != null && it.lng != null && isValidAmbaCoords(it.lat, it.lng) }
+                .map { it.toParkingSpot(origin) }
+                .sortedBy { distanceMeters(origin, it) }
+                .take(MAX_PARKINGS)
+
+            if (parkings.isNotEmpty()) {
+                _uiState.value = _uiState.value.copy(
+                    parkings = parkings,
+                    selectedParking = parkings.first()
+                )
             }
+        } catch (e: Exception) {
+            // Mantener mock si falla (offline / DB inalcanzable)
+        }
+    }
+
+    private suspend fun fetchReports() {
+        try {
+            val reports = SupabaseClient.client.postgrest["community_reports"].select().decodeList<CommunityReport>()
+            _uiState.value = _uiState.value.copy(reports = reports)
+        } catch (e: Exception) {
+            // Sin tabla o sin permisos: se ignora
         }
     }
 
