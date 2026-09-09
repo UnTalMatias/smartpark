@@ -95,7 +95,12 @@ fun AppNavGraph(
         composable(Screen.AiAssistant.route) {
             AiAssistantScreen(
                 messages = uiState.chatMessages,
+                parkings = uiState.parkings,
+                isThinking = uiState.isThinking,
                 onSendMessage = { viewModel.sendChatMessage(it) },
+                onNavigateToParking = { parkingId ->
+                    navController.navigate(Screen.ParkingDetail.createRoute(parkingId))
+                },
                 onNavigateBack = { navController.popBackStack() }
             )
         }
@@ -121,6 +126,8 @@ fun AppNavGraph(
         composable(Screen.Apis.route) {
             ApisScreen(
                 apis = com.estacionamiento.inteligente.data.datasource.MockDataSource.APIS,
+                geminiApiKey = uiState.geminiApiKey,
+                onApiKeyChange = { viewModel.updateGeminiApiKey(it) },
                 onNavigateBack = { navController.popBackStack() }
             )
         }

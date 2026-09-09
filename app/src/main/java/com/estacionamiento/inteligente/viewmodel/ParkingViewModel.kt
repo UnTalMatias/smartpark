@@ -1,9 +1,12 @@
 package com.estacionamiento.inteligente.viewmodel
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.estacionamiento.inteligente.data.datasource.MockDataSource
 import com.estacionamiento.inteligente.data.model.*
+import com.estacionamiento.inteligente.data.repository.PreferenceRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -32,12 +35,15 @@ data class UiState(
     val currentSpeedKmh: Int = 42,
     val isGpsActive: Boolean = true,
     val reports: List<CommunityReport> = emptyList(),
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val geminiApiKey: String = "AQ.Ab8RN6J9PWpYi8k1sLBmEqWuAnBxLVsZMlUH1ap8h2xtb_91tQ",
+    val isThinking: Boolean = false
 )
 
-class ParkingViewModel : ViewModel() {
+class ParkingViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val _uiState = MutableStateFlow(UiState())
+    private val preferenceRepository = PreferenceRepository.getInstance(application)
+    private val _uiState = MutableStateFlow(UiState(geminiApiKey = preferenceRepository.getGeminiApiKey()))
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
     init {
@@ -141,26 +147,41 @@ class ParkingViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(searchQuery = query)
     }
 
+    fun updateGeminiApiKey(apiKey: String) {
+        preferenceRepository.saveGeminiApiKey(apiKey)
+        _uiState.value = _uiState.value.copy(geminiApiKey = apiKey)
+    }
+
     fun sendChatMessage(text: String) {
         val userMsg = ChatMessage(
             id = "msg_${System.currentTimeMillis()}",
             sender = "user",
             text = text,
-            timestamp = "9:43"
+            timestamp = "Ahora"
         )
-        val updatedList = _uiState.value.chatMessages + userMsg
-        _uiState.value = _uiState.value.copy(chatMessages = updatedList)
+        _uiState.value = _uiState.value.copy(
+            chatMessages = _uiState.value.chatMessages + userMsg,
+            isThinking = true
+        )
 
         viewModelScope.launch {
-            delay(800)
-            val botReply = ChatMessage(
-                id = "bot_${System.currentTimeMillis()}",
-                sender = "bot",
-                text = "He verificado las cocheras cercanas a Manuel Ugarte 2400 (ET N°21). Te recomiendo Estacionamiento Plaza Ugarte que cuenta con 15 lugares disponibles.",
-                timestamp = "9:43",
-                suggestedParkings = listOf("plaza")
-            )
-            _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + botReply)
+            try {
+                val currentState = _uiState.value
+                val repository = com.estacionamiento.inteligente.data.remote.GeminiRepository(currentState.geminiApiKey)
+                
+                val botReply = repository.queryGemini(
+                    userQuery = text,
+                    parkings = currentState.parkings,
+                    userLocation = currentState.userLocation,
+                    history = currentState.chatMessages
+                )
+                
+                _uiState.value = _uiState.value.copy(chatMessages = _uiState.value.chatMessages + botReply)
+            } catch (e: Exception) {
+                // Fallback de emergencia si algo falla fuera del repositorio
+            } finally {
+                _uiState.value = _uiState.value.copy(isThinking = false)
+            }
         }
     }
 }
